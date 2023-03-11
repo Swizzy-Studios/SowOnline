@@ -11,7 +11,8 @@ def wikiscrape (inurl):
         'twenty','thirty','fourty','fifty','sixty','seventy','eighty','ninety',
         'hundred','thousand','million','billion','trillion','millionth','billionth','trillionth']
     wordnumbers = ['1st','2nd','3rd','4th','5th','6th','7th','8th','9th','10th','11th','12th','13th','14th','15th','16th','17th','18th','19th','20th','30th','40th','50th','60th','70th','80th','90th','00th','000th','1','2','3','4','5','6','7','8','9','10','20','30','40','50','60','70','80','90','00','000','000000','000000000','000000000000','000000th','000000000th','000000000000th']
-    
+    titleurl = ''
+       
     try:
         page = requests.get(inurl)
     except:
@@ -21,9 +22,23 @@ def wikiscrape (inurl):
     contentstr = []
     for line in page.iter_lines():
         contentstr.append(line.decode("utf-8"))
+    titleurl = ''
     for line in contentstr:
         br = 0
         templine = line
+        if '/wiki/Special:WhatLinksHere/' in line:
+            hrefc = templine.index('href="') + 6
+            i = 0
+            href = ''
+            presentation = ''
+            c = ''
+            while c != '"':
+                href += c
+                #print(title)
+                c = line[hrefc + i]
+                i+=1
+            titleurl = href.replace('/wiki/Special:WhatLinksHere/','')
+            
         while 'href' in templine and "/wiki/" in templine and 'title="' in templine:
             #if 'href' and "/wiki/" and 'title="' in templine:
             titlec = templine.index('title="') + 7
@@ -123,6 +138,45 @@ def wikiscrape (inurl):
         rcoll = re.findall(r' \d+ ',line)
         for word in rcoll:
             seeds.append(word.replace(' ',''))
+    
+    
+    linkshere = "https://en.wikipedia.org/w/index.php?title=Special:WhatLinksHere/" + titleurl + "&namespace=0&limit=500"
+    
+    try:
+        linksherer = requests.get(linkshere)
+    except:
+        print("Error fetching link pages for relevancy check")
+        exit(0)
+    linksherestr = []
+    pc = pcn = 0
+    for line in linksherer.iter_lines():
+        linksherestr.append(line.decode("utf-8"))
+    print(linkshere)
+    for line in linksherestr:
+        #print(line)
+        if 'mw-pager-navigation-bar' in line:
+            lineindex = pc
+            break
+        pc += 1
+        
+    lineindex +=1
+    linksherearr = []
+    offset = linksherestr[lineindex + pcn]
+    while 'mw-pager-navigation-bar' not in offset: 
+        titlec = offset.index('title="') + 7
+        i = 0
+        title = ''
+        presentation = ''
+        c = ''
+        while c != '"':
+            title += c
+            #print(title)
+            c = offset[titlec + i]
+            i+=1
+        linksherearr.append(title)
+        pcn += 1
+        offset = linksherestr[lineindex + pcn]
+    print(linksherearr)
     return seeds
 
 
@@ -131,7 +185,7 @@ wikisearch = wikisearch.replace(' ','+')
 searchsafe = 'https://en.wikipedia.org/w/index.php?fulltext=Search&search='+ wikisearch + '&title=Special%3ASearch&profile=advanced&fulltext=1&ns0=1'
 print('Search Query: ' + searchsafe)
 searchreq = requests.get(searchsafe)
-wfilter = ['prollynotgonnabeinhere','list of','You are encouraged to create an account and log in','commons:Category','ctx_ver','template','wikipedia','user menu','Main menu','edit section','Visit the main page','Go to a page with this exact name if it exists','Download this page as a PDF file','More options','category','WebM','portal:','accesskey=','data-mwprovider=','data-shorttitle=','class=','Special:']
+wfilter = ['list of','You are encouraged to create an account and log in','commons:Category','ctx_ver','template','wikipedia','user menu','Main menu','edit section','Visit the main page','Go to a page with this exact name if it exists','Download this page as a PDF file','More options','category','WebM','portal:','accesskey=','data-mwprovider=','data-shorttitle=','class=','Special:']
 contentstr = []
 
     
@@ -173,8 +227,8 @@ for wiki in wikitosearch:
         seedsilo.append(word)
 seedsilo = list(set(seedsilo))
 seedsilo = sorted(seedsilo)
-for seed in seedsilo:
-    print(seed)
+#for seed in seedsilo:
+#    print(seed)
 # i = 0
 #print(contentstr)
 #excelauto001@gmail.com
